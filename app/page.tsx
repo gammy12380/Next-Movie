@@ -1,101 +1,198 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import MovieSection from "@/components/MovieSection";
+import LoadingSpin from "@/components/LoadingSpin";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel"
+import LazyImage from "@/components/LazyImage";
+import { Button } from "@/components/ui/button"
+import { MovieList, MovieCommon, MovieStatus } from "@/app/types/movie";
+import { fetchAPI } from "@/hooks/apiClient";
+import { useAuth } from '@/context/AuthContext';
+import { useAlert } from "@/context/AlertContext";
+
+import Link from "next/link";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const { sessionId, accountDetail } = useAuth()
+  const { showAlert } = useAlert();
+  const [isLoading, setIsLoading] = useState(true);
+  const [movies, setMovies] = useState<Record<string, MovieList[]>>({
+    trendingList: [],
+    trendingKRList: [],
+    trendingTWList: [],
+    trendingUSList: [],
+    trendingAnimateList: [],
+    hotList: [],
+  });
+  const [movieStatus, setMovieStatus] = useState<MovieStatus[] | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const currentDate = `${yyyy}-${mm}-${dd}`;
+
+
+  // 熱門電影
+  const trendingListUrl = '/trending/movie/week?region=TW&sort_by=release_date.desc'
+  // 熱門韓劇
+  const trendingKRListUrl = `/discover/tv?region=TW&with_original_language=ko&sort_by=first_air_date.desc&first_air_date.lte=${currentDate}`
+  // 熱門台劇
+  const trendingTWListUrl = `/discover/tv?with_original_language=zh&region=TW&sort_by=first_air_date.desc&first_air_date.lte=${currentDate}`
+  // 熱門美劇
+  const trendingUSListUrl = `/discover/tv?with_original_language=en&region=TW&sort_by=first_air_date.desc&first_air_date.lte=${currentDate}`
+  // 熱門動畫
+  const trendingAnimateListUrl = `/discover/tv?with_genres=16&region=TW&sort_by=first_air_date.desc&first_air_date.lte=${currentDate}`
+
+  // 熱門電影
+  const hotMovieUrl = '/movie/popular'
+  // 熱門影集
+  const hotTVUrl = '/tv/popular'
+
+  const fetchMovies = async () => {
+    setIsLoading(true);
+    try {
+      const res = await Promise.all([
+        fetchAPI<MovieCommon<MovieList>>(trendingListUrl),
+        fetchAPI<MovieCommon<MovieList>>(trendingKRListUrl),
+        fetchAPI<MovieCommon<MovieList>>(trendingTWListUrl),
+        fetchAPI<MovieCommon<MovieList>>(trendingUSListUrl),
+        fetchAPI<MovieCommon<MovieList>>(trendingAnimateListUrl),
+        fetchAPI<MovieCommon<MovieList>>(hotMovieUrl),
+        fetchAPI<MovieCommon<MovieList>>(hotTVUrl),
+      ]);
+
+      const hotMoviesAndTV = [
+        ...res[5].results.slice(0, 5).map(item => ({ ...item, type: 'movie' as const })),
+        ...res[6].results.slice(0, 5).map(item => ({ ...item, type: 'tv' as const }))
+      ];
+
+      const sortedHotList = hotMoviesAndTV
+        .sort((a, b) => b.popularity - a.popularity)
+        .slice(0, 5);
+
+      setMovies({
+        trendingList: res[0].results,
+        trendingKRList: res[1].results,
+        trendingTWList: res[2].results,
+        trendingUSList: res[3].results,
+        trendingAnimateList: res[4].results,
+        hotList: sortedHotList
+      });
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getMovieFavorite = (item: MovieList) => {
+    return movieStatus?.find(movie => movie.id === item.id)?.favorite
+  }
+
+  const addFavorite = async (movie: MovieList) => {
+    await fetchAPI(`/account/${accountDetail?.id}/favorite`, {
+      method: 'POST',
+      body: {
+        media_type: movie.type,
+        media_id: movie.id,
+        favorite: !getMovieFavorite(movie),
+      }
+    })
+    showAlert(!getMovieFavorite(movie) ? '加入成功' : '移除成功');
+    getMovieStatusApi(movie)
+  }
+
+  const getMovieStatusApi = async (movie: MovieList) => {
+    const res = await fetchAPI<MovieStatus>(`/${movie?.type}/${movie.id}/account_states`)
+
+    setMovieStatus((prev) => {
+      if (!prev) return [res];
+
+      const existingIndex = prev.findIndex((m) => m.id === movie.id);
+      if (existingIndex > -1) {
+        const updatedStatus = [...prev];
+        updatedStatus[existingIndex] = res;
+        return updatedStatus;
+      }
+
+      return [...prev, res];
+    });
+  }
+
+
+  useEffect(() => {
+    fetchMovies();
+  }, []);
+
+  useEffect(() => {
+    sessionId && movies.hotList.forEach(item => {
+      getMovieStatusApi(item)
+    })
+  }, [movies.hotList])
+
+
+  if (isLoading) {
+    return <LoadingSpin />
+  }
+
+  return (
+    <div className="space-y-4">
+      <Carousel
+        className="w-full"
+      >
+        <CarouselContent>
+          {movies.hotList.map((item, index) => (
+            <CarouselItem key={index}>
+              <div className="relative">
+                <LazyImage
+                  src={`https://image.tmdb.org/t/p/original${item.backdrop_path}`}
+                  alt={item.name || item.title}
+                  imgClass="w-full"
+                />
+                <div className="absolute left-10 top-1/2 -translate-y-1/2 z-[2] w-2/5 flex flex-col gap-2 md:gap-4">
+                  <span className="text-gradient text-2xl md:text-3xl font-bold">{item.vote_average.toFixed(1)}</span>
+                  <span className="text-white text-3xl md:text-4xl font-bold">{item.name || item.title}</span>
+                  <span className="truncate line-clamp-2 whitespace-normal text-white max-sm:text-sm">{item.overview}</span>
+                  <div className="flex gap-2">
+                    <Link href={`/${item.type}/${item.id}`}>
+                      <Button variant="gradient-border" className="w-25 md:w-40 text-white">
+                        更多資訊
+                      </Button>
+                    </Link>
+                    {sessionId && <Button variant={getMovieFavorite(item) ? "gradient-border" : "gradient"} className="w-25 md:w-40 text-white" onClick={() => addFavorite(item)}>{getMovieFavorite(item) ? "移出片單" : "加入片單"}</Button>}
+                  </div>
+                </div>
+                <div className="absolute top-0 left-0 w-full h-full z-[1]"
+                  style={{
+                    background: 'radial-gradient(72.5% 427.7% at 96.33% 50%, rgba(27, 30, 37, 0) 39.58%, rgba(27, 30, 37, 0.93) 94.79%),linear-gradient(360deg, #1B1E25 0%, rgba(27, 30, 37, 0) 29.22%)'
+                  }} />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
+      <div className="p-4">
+        <MovieSection title="熱門電影" list={movies.trendingList} />
+      </div>
+      <div className="p-4 bg-[#686B721A] xl:rounded-[20px]" >
+        <MovieSection title="熱門韓劇" type="tv" list={movies.trendingKRList} />
+      </div>
+      <div className="p-4">
+        <MovieSection title="熱門台劇" type="tv" list={movies.trendingTWList} />
+      </div>
+      <div className="p-4 bg-[#686B721A] xl:rounded-[20px]" >
+        <MovieSection title="熱門美劇" type="tv" list={movies.trendingUSList} />
+      </div>
+      <div className="p-4">
+        <MovieSection title="熱門動畫" type="tv" list={movies.trendingAnimateList} />
+      </div>
     </div>
+
   );
 }
