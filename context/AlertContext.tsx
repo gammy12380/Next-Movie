@@ -33,7 +33,7 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
         <AlertContext.Provider value={{ showAlert }}>
             {children}
             {alert.visible && (
-                <div className="fixed top-0 left-1/2 -translate-x-1/2 z-10 max-w-40 pt-[var(--header-height)]">
+                <div className="fixed top-0 left-1/2 -translate-x-1/2 z-100 max-w-40 pt-[var(--header-height)]">
                     <Alert className="w-max px-4 py-2 bg-[#161616] text-white border-none">
                         {alert.title && <AlertTitle className="mb-0">{alert.title}</AlertTitle>}
                         {alert.content && <AlertDescription className="mb-0">{alert.content}</AlertDescription>}

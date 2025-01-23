@@ -39,6 +39,7 @@ export function LoginDialog({ open = false, onOpenChange }: LoginDialog) {
         value: "",
         error: false
     });
+    const [loginError, setError] = useState('')
 
 
     const resTokenUrl = '/authentication/token/new';
@@ -95,14 +96,20 @@ export function LoginDialog({ open = false, onOpenChange }: LoginDialog) {
             password: password.value,
             request_token: resToken
         }
-        const res = await fetchAPI<ValidateLoginRes, LoginRequestBody>(validateLoginUrl, {
-            method: 'POST', body,
-        });
-        if (res.success) {
-            await getSessionId()
-            onOpenChange(false)
-            showAlert('登入成功')
-            return
+
+        try {
+            const res = await fetchAPI<ValidateLoginRes, LoginRequestBody>(validateLoginUrl, {
+                method: 'POST', body,
+            });
+            if (res?.success) {
+                await getSessionId()
+                onOpenChange(false)
+                showAlert('登入成功')
+                return
+            }
+        } catch (error) {
+            setError('登入失敗')
+            console.log(error)
         }
     }
 
@@ -144,11 +151,11 @@ export function LoginDialog({ open = false, onOpenChange }: LoginDialog) {
             <DialogContent className="grid sm:max-w-[425px] bg-[#161616] border-none">
                 <DialogHeader>
                     <DialogTitle className="text-white">請登入TMDB帳號</DialogTitle>
-                    <DialogDescription className="hidden"></DialogDescription>
+                    <DialogDescription className="text-red-500">{loginError}</DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="username" className={`text-right text-white ${username.error && 'text-red-500'}`}>
+                        <Label htmlFor="username" className={`text-right text-white text-sm w-max ${username.error && 'text-red-500'}`}>
                             使用者名稱
                         </Label>
                         <Input
@@ -161,7 +168,7 @@ export function LoginDialog({ open = false, onOpenChange }: LoginDialog) {
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="password" className={`text-right text-white ${password.error && 'text-red-500'}`}>
+                        <Label htmlFor="password" className={`text-right text-white text-sm w-max ${password.error && 'text-red-500'}`}>
                             密碼
                         </Label>
                         <Input
