@@ -12,6 +12,7 @@ import { FaStar } from "react-icons/fa";
 import { fetchAPI } from "@/hooks/apiClient";
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useAuth } from '@/context/AuthContext';
+import { useAlert } from "@/context/AlertContext";
 import {
     Accordion,
     AccordionContent,
@@ -35,6 +36,7 @@ type MoviesState = {
 
 const MovieDetailPage = () => {
     const { sessionId, accountDetail } = useAuth()
+    const { showAlert } = useAlert();
     const [isLoading, setIsLoading] = useState(true);
     const [movie, setMovie] = useState<MovieList | null>(null);
     const [watchProviders, setWatchProviders] = useState<WatchProvider | null>(null);
@@ -96,6 +98,7 @@ const MovieDetailPage = () => {
                 favorite: !movieStatus?.favorite,
             }
         })
+        showAlert(!movieStatus?.favorite ? '加入成功' : '移除成功');
         getMovieStatus()
     }
 
