@@ -78,7 +78,7 @@ export default function HeaderMenu({ onOpen }: HeaderMenu) {
                 <div className="flex items-center gap-4">
                     <Link href="/">
                         <h2 className="w-max flex justify-center items-center gap-2 font-bold">
-                            <img src="/wLogo.png" alt="logo" className="size-6 md:size-10" />
+                            <img src="/logo.png" alt="logo" className="size-6 md:size-10" />
                             <span className="text-white tracking-[8px]">挖!影</span>
                         </h2>
                     </Link>
