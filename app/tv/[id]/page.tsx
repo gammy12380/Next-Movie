@@ -90,7 +90,7 @@ const TVDetailPage = () => {
 
         }
     }
-    showAlert(!movieStatus?.favorite ? '加入成功' : '移除成功');
+
     const addList = async () => {
         await fetchAPI(`/account/${sessionId}/favorite`, {
             method: 'POST',
@@ -126,7 +126,7 @@ const TVDetailPage = () => {
 
     useEffect(() => {
         fetchMovie()
-    }, [])
+    }, [tvId])
 
     useEffect(() => {
         if (sessionId) {
@@ -175,7 +175,7 @@ const TVDetailPage = () => {
                         <span className="primary-label">{languageMap[tv.original_language] ?? tv.original_language}</span>
                         <span className="primary-label">{toHHMM(tv?.episode_run_time?.[0])}</span>
                     </p>
-                    <p className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4">
                         <span className="primary-label">推出時間</span>
                         <div className="flex flex-col gap-4">
                             {
@@ -188,7 +188,7 @@ const TVDetailPage = () => {
                                 ))
                             }
                         </div>
-                    </p>
+                    </div>
                     <p className="primary-label space-x-2">
                         <span>導演</span>
                         <span>
