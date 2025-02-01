@@ -8,7 +8,7 @@ import MovieSection from "@/components/MovieSection";
 import { FaSortAmountDown } from "react-icons/fa";
 import { FaSortAmountUp } from "react-icons/fa";
 import { Genres, MovieCommon, MovieList } from "@/app/types/movie";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
     Drawer,
     DrawerContent,
@@ -33,17 +33,24 @@ export default function TV() {
     const [sectionLoading, setSectionLoading] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [genres, setGenres] = useState<{ id: number | undefined, name: string }[]>([])
-    const [score, setScore] = useState(5)
-    const [year, setYear] = useState<number | undefined>(undefined)
     const [tvList, setTvList] = useState<MovieList[]>([])
     const [total, setTotal] = useState(0)
-    const [genreType, setGenreType] = useState<number | undefined>(undefined)
-    const [byType, setByType] = useState({ name: '人氣', value: 'popularity' })
     const [page, setPage] = useState(1)
-    const [sort, setSort] = useState('desc')
-
-    const yearArray: number[] = generateYearArray(2010);
-
+    const [isSearchTriggered, setIsSearchTriggered] = useState(false);
+    const [searchParams, setSearchParams] = useState<{
+        genreType: number | undefined;
+        year: number | undefined;
+        score: number;
+        byType: { name: string; value: string };
+        sort: string;
+    }>({
+        genreType: undefined,
+        year: undefined,
+        score: 5,
+        byType: { name: '人氣', value: 'popularity' },
+        sort: 'desc',
+    });
+    const [yearArray, setYearArray] = useState<number[]>([]);
 
     const byTypes = [{ name: '評分', value: 'vote_average' },
     { name: '人氣', value: 'popularity' },
@@ -54,46 +61,47 @@ export default function TV() {
     const discoverTVUrl = '/discover/tv?region=TW'
 
     const setGenreTypeHandler = (value?: number) => {
-        setGenreType(value)
-    }
-
+        setSearchParams((prev) => ({ ...prev, genreType: value }));
+    };
+    
     const setYearHandler = (value?: number) => {
-        setYear(value)
-    }
-
+        setSearchParams((prev) => ({ ...prev, year: value }));
+    };
+    
     const setByTypeHandler = (value: { name: string, value: string }) => {
-        setByType(value)
-    }
+        setSearchParams((prev) => ({ ...prev, byType: value }));
+    };
+    
     const setScoreHandler = (value: number[]) => {
-        setScore(value[0])
-    }
+        setSearchParams((prev) => ({ ...prev, score: value[0] }));
+    };
 
     const setSortHandler = () => {
-        const newSort = sort === 'desc' ? 'asc' : 'desc';
-        setSort(newSort)
+        const newSort = searchParams.sort === 'desc' ? 'asc' : 'desc';
+        setSearchParams((prev) => ({ ...prev, sort: newSort }));
     }
 
-    const fetchTVData = async (init: boolean = false) => {
+
+    const fetchTVData = useCallback(async () => {
+        const init = page === 1
         init ? setIsLoading(true) : setSectionLoading(true);
         const queryParams = {
-            with_genres: genreType,
-            first_air_date_year: year,
-            'vote_average.gte': score,
-            sort_by: `${byType.value}.${sort}`,
+            with_genres: searchParams.genreType,
+            first_air_date_year: searchParams.year,
+            'vote_average.gte': searchParams.score,
+            sort_by: `${searchParams.byType.value}.${searchParams.sort}`,
             page,
-        }
+        };
         try {
             const res = await fetchAPI<MovieCommon<MovieList>>(discoverTVUrl, { queryParams })
+            if(init) setTvList([])
             setTotal(res.total_results ?? 0)
-            if (page === 1) {
-                setTvList(res.results)
-            } else {
-                setTvList((prev) => ([...prev, ...res.results]))
-            }
-            if (init) {
-                const genresRes = await fetchAPI<Genres>(genresUrl);
-                setGenres([{ name: '全部', id: undefined }, ...genresRes.genres]);
-            }
+            setTvList((prev) => {
+                const uniqueMovies = [...prev, ...res.results].filter(
+                    (movie, index, self) => self.findIndex((m) => m.id === movie.id) === index
+                );
+                return uniqueMovies;
+            });
             if (isDrawerOpen) {
                 setIsDrawerOpen(false)
             }
@@ -102,21 +110,36 @@ export default function TV() {
         } finally {
             init ? setIsLoading(false) : setSectionLoading(false)
         }
-    }
+    },[searchParams, page])
+
+    const fetchGenres = useCallback(async()=>{
+        const genresRes = await fetchAPI<Genres>(genresUrl);
+        setGenres([{ name: '全部', id: undefined }, ...genresRes.genres]);
+    },[])
+
 
     const searchMore = async () => {
+        setIsSearchTriggered(true);
         setPage((prev) => prev + 1)
+        fetchTVData()
     }
 
-
     useEffect(() => {
-        fetchTVData(true)
-    }, [])
-
+        setIsSearchTriggered(false);
+    }, [searchParams]);
 
     useEffect(() => {
         fetchTVData();
-    }, [page, sort]);
+    }, [searchParams.sort,page, isSearchTriggered]);
+
+    useEffect(()=>{
+        fetchGenres();
+    },[fetchGenres])
+
+    useEffect(() => {
+        const generatedYearArray = generateYearArray(2010);
+        setYearArray(generatedYearArray);
+    }, []);
 
 
     if (isLoading) {
@@ -131,7 +154,7 @@ export default function TV() {
                     <div className="flex flex-wrap gap-2">
                         {
                             genres.map(item => (
-                                <Button size="sm" className="px-4" variant={genreType === item.id ? 'gradient' : undefined} key={item.id ?? item.name}
+                                <Button size="sm" className="px-4" variant={searchParams.genreType === item.id ? 'gradient' : undefined} key={item.id ?? item.name}
                                     onClick={() => setGenreTypeHandler(item.id)}>
                                     {item.name}
                                 </Button>
@@ -142,13 +165,13 @@ export default function TV() {
                 <div className="flex flex-col gap-4">
                     <h4 className="primary-label text-white">年份</h4>
                     <div className="flex flex-wrap gap-2">
-                        <Button size="sm" className="px-4" variant={year === undefined ? 'gradient' : undefined}
+                        <Button size="sm" className="px-4" variant={searchParams.year === undefined ? 'gradient' : undefined}
                             onClick={() => setYearHandler(undefined)}>
                             全部
                         </Button>
                         {
                             yearArray.map(item => (
-                                <Button size="sm" className="px-4" variant={year === item ? 'gradient' : undefined} key={item}
+                                <Button size="sm" className="px-4" variant={searchParams.year === item ? 'gradient' : undefined} key={item}
                                     onClick={() => setYearHandler(item)}>
                                     {item}
                                 </Button>
@@ -161,7 +184,7 @@ export default function TV() {
                         <h4 className="primary-label text-white min-w-max">評分</h4>
                         <div className="flex items-center w-full gap-2 text-white">
                             <span>0</span>
-                            <Slider defaultValue={[score]} max={10} step={1} onValueChange={setScoreHandler} />
+                            <Slider defaultValue={[searchParams.score]} max={10} step={1} onValueChange={setScoreHandler} />
                             <span>10</span>
                         </div>
 
@@ -175,7 +198,7 @@ export default function TV() {
                 <div className="flex gap-2 max-sm:flex-wrap">
                     {
                         byTypes.map((item, idx) => (
-                            <Button key={idx} className="max-[395px]:px-2 max-sm:text-xs max-sm:w-fit w-[100px]" variant={byType.name === item.name ? 'gradient' : undefined}
+                            <Button key={idx} className="max-[395px]:px-2 max-sm:text-xs max-sm:w-fit w-[100px]" variant={searchParams.byType.name === item.name ? 'gradient' : undefined}
                                 onClick={() => setByTypeHandler(item)}>{item.name}</Button>
                         ))
                     }
@@ -189,7 +212,7 @@ export default function TV() {
                                 <div className="flex flex-wrap gap-2">
                                     {
                                         genres.map(item => (
-                                            <Button size="sm" className="px-4" variant={genreType === item.id ? 'gradient' : undefined} key={item.id ?? item.name}
+                                            <Button size="sm" className="px-4" variant={searchParams.genreType === item.id ? 'gradient' : undefined} key={item.id ?? item.name}
                                                 onClick={() => setGenreTypeHandler(item.id)}>
                                                 {item.name}
                                             </Button>
@@ -200,13 +223,13 @@ export default function TV() {
                             <DrawerTitle><div className="primary-label text-white text-left">年份</div></DrawerTitle>
                             <div className="flex flex-col gap-4">
                                 <div className="flex flex-wrap gap-2">
-                                    <Button size="sm" className="px-4" variant={year === undefined ? 'gradient' : undefined}
+                                    <Button size="sm" className="px-4" variant={searchParams.year === undefined ? 'gradient' : undefined}
                                         onClick={() => setYearHandler(undefined)}>
                                         全部
                                     </Button>
                                     {
                                         yearArray.map(item => (
-                                            <Button size="sm" className="px-4" variant={year === item ? 'gradient' : undefined} key={item}
+                                            <Button size="sm" className="px-4" variant={searchParams.year === item ? 'gradient' : undefined} key={item}
                                                 onClick={() => setYearHandler(item)}>
                                                 {item}
                                             </Button>
@@ -219,7 +242,7 @@ export default function TV() {
                                     <div className="primary-label text-white min-w-max">評分</div>
                                     <div className="flex items-center w-full gap-2 text-white">
                                         <span>0</span>
-                                        <Slider defaultValue={[score]} max={10} step={1} onValueChange={setScoreHandler} />
+                                        <Slider defaultValue={[searchParams.score]} max={10} step={1} onValueChange={setScoreHandler} />
                                         <span>10</span>
                                     </div>
 
@@ -236,8 +259,8 @@ export default function TV() {
                 <div className="flex justify-between">
                     <h4 className="text-white text-lg max-sm:text-sm">影集</h4>
                     <div className="text-white cursor-pointer" onClick={() => setSortHandler()}>
-                        {sort === 'desc' && <FaSortAmountDown className="max-sm:size-4 size-5" />}
-                        {sort === 'asc' && <FaSortAmountUp className="max-sm:size-4 size-5" />}
+                        {searchParams.sort === 'desc' && <FaSortAmountDown className="max-sm:size-4 size-5" />}
+                        {searchParams.sort === 'asc' && <FaSortAmountUp className="max-sm:size-4 size-5" />}
                     </div>
                 </div>
                 <MovieSection isLoading={sectionLoading} layout="grid" total={total} type="tv" list={tvList} onSearchMore={searchMore} />

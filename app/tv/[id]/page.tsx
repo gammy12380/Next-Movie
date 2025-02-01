@@ -1,6 +1,6 @@
 "use client"
 import { useParams } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import LazyImage from "@/components/LazyImage";
 import LoadingSpin from "@/components/LoadingSpin";
 import { Button } from "@/components/ui/button"
@@ -20,14 +20,6 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion"
 import VideoDialog from '@/components/VideoDialog';
-
-
-const toHHMM = (minutes?: number) => {
-    if (!minutes) return '-'
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}小時 ${mins.toString().padStart(2, '0')}分鐘`;
-}
 
 
 type MoviesState = {
@@ -63,7 +55,7 @@ const TVDetailPage = () => {
 
     const movieBanner = isMobile ? tv?.backdrop_path : tv?.poster_path
 
-    const fetchMovie = async () => {
+    const fetchMovie = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await Promise.all([
@@ -89,7 +81,7 @@ const TVDetailPage = () => {
             setIsLoading(false);
 
         }
-    }
+    },[recommendationsUrl, reviewsUrl, tvCreditsUrl, tvUrl, videoUrl, watchProvidersUrl])
 
     const addList = async () => {
         await fetchAPI(`/account/${sessionId}/favorite`, {
@@ -104,11 +96,18 @@ const TVDetailPage = () => {
         getTVStatus()
     }
 
-    const getTVStatus = async () => {
+    const toHHMM = (minutes?: number) => {
+        if (!minutes) return '-'
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours.toString().padStart(2, '0')}小時 ${mins.toString().padStart(2, '0')}分鐘`;
+    }
+
+    const getTVStatus = useCallback(async () => {
         const res = await fetchAPI<MovieStatus>(`/tv/${tvId}/account_states`)
 
         setMovieStatus(res)
-    }
+    },[tvId])
 
     const videoTrailers = useMemo(() => {
         const YTVideo = video.find(v => v.site === 'YouTube' && v.type === 'Trailer' && v.official === true);
@@ -126,13 +125,13 @@ const TVDetailPage = () => {
 
     useEffect(() => {
         fetchMovie()
-    }, [tvId])
+    }, [fetchMovie])
 
     useEffect(() => {
         if (sessionId) {
             getTVStatus()
         }
-    }, [sessionId])
+    }, [sessionId,getTVStatus])
 
     if (!tv || isLoading) {
         return <LoadingSpin />
@@ -168,7 +167,7 @@ const TVDetailPage = () => {
                                 ))
                             }
                         </div>
-                        {sessionId && <Button variant={movieStatus?.favorite ? "gradient" : "gradient-border"} className="w-40" onClick={() => addList()}>{movieStatus?.favorite ? "移出片單" : "加入片單"}</Button>}
+                        {sessionId && <Button variant={movieStatus?.favorite ? "gradient" : "gradient-border"} className="w-40 h-[42px]" onClick={() => addList()}>{movieStatus?.favorite ? "移出片單" : "加入片單"}</Button>}
                     </div>
                     <h2 className="text-3xl font-bold tabular-nums flex gap-4">{tv.name} <span className="text-gradient">{tv.vote_average.toFixed(1)}</span></h2>
                     <p className="flex gap-8">

@@ -5,7 +5,7 @@ import { fetchAPI } from "@/hooks/apiClient";
 import CharacterSection from "@/components/CharacterSection";
 import MovieSection from "@/components/MovieSection";
 import { MovieCommon, MovieList, Cast } from "@/app/types/movie";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button"
 
 type SearchType = 'movie' | 'tv' | 'person'
@@ -24,11 +24,13 @@ export default function Search() {
   const [page, setPage] = useState(1)
   const [searchType, setSearchType] = useState<SearchType>('movie');
 
-  const searchUrl: Record<SearchType, string> = {
-    movie: '/search/movie',
-    tv: '/search/tv',
-    person: '/search/person',
-  }
+  const searchUrl: Record<SearchType, string> = useMemo(()=>{
+    return {
+      movie: '/search/movie',
+      tv: '/search/tv',
+      person: '/search/person',
+    }
+  },[])
 
   const buttonType: ButtonType[] = [
     { title: '電影', value: 'movie' },
@@ -36,7 +38,8 @@ export default function Search() {
     { title: '演員', value: 'person' },
   ]
 
-  const fetchMovie = async (init: boolean = false) => {
+  const fetchMovie = useCallback(async () => {
+    const init = page === 1
     !init && setSectionLoading(true);
     try {
       const res = await fetchAPI<MovieCommon<MovieList>>(searchUrl[searchType], { queryParams: { query, page } })
@@ -51,18 +54,14 @@ export default function Search() {
     } finally {
       !init && setSectionLoading(false);
     }
-  }
+  },[page, query, searchType, searchUrl])
 
-  const fetchCast = async () => {
+  const fetchCast = useCallback(async () => {
     const res = await fetchAPI<MovieCommon<Cast>>(searchUrl[searchType], { queryParams: { query, page } })
     setTotal(res.total_results)
-    if (page === 1) {
-      setCast(res.results)
-    } else {
-      setCast((prev) => ([...prev, ...res.results]))
-    }
+    setCast((prev) => ([...prev, ...res.results]))
 
-  }
+  },[page, query, searchType, searchUrl])
 
   const changeSearchType = (value: SearchType) => {
     setPage(1)
@@ -77,8 +76,8 @@ export default function Search() {
 
 
   useEffect(() => {
-    searchType !== 'person' ? fetchMovie(true) : fetchCast()
-  }, [query, page, searchType])
+    searchType !== 'person' ? fetchMovie() : fetchCast()
+  }, [fetchMovie, fetchCast, searchType])
 
   return (
     <div className="py-4 space-y-4">

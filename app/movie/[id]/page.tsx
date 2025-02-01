@@ -1,6 +1,6 @@
 "use client"
 import { useParams } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import LoadingSpin from "@/components/LoadingSpin";
 import { Button } from "@/components/ui/button"
 import type { Video, VideoResults, MovieList, MovieStatus, Cast, Crew, WatchProvider, MovieRecommendations, MovieRecommendation, MovieReview, ReviewResult } from "@/app/types/movie";
@@ -20,13 +20,6 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion"
 import VideoDialog from '@/components/VideoDialog';
-
-
-const toHHMM = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}小時 ${mins.toString().padStart(2, '0')}分鐘`;
-}
 
 
 type MoviesState = {
@@ -61,7 +54,7 @@ const MovieDetailPage = () => {
 
     const movieBanner = isMobile ? movie?.backdrop_path : movie?.poster_path
 
-    const fetchMovie = async () => {
+    const fetchMovie = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await Promise.all([
@@ -87,7 +80,7 @@ const MovieDetailPage = () => {
             setIsLoading(false);
 
         }
-    }
+    },[movieCreditsUrl, movieUrl, recommendationsUrl, reviewsUrl, videoUrl, watchProvidersUrl])
 
     const addList = async () => {
         await fetchAPI(`/account/${accountDetail?.id}/favorite`, {
@@ -102,11 +95,17 @@ const MovieDetailPage = () => {
         getMovieStatus()
     }
 
-    const getMovieStatus = async () => {
+    const toHHMM = (minutes: number) => {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours.toString().padStart(2, '0')}小時 ${mins.toString().padStart(2, '0')}分鐘`;
+    }
+
+    const getMovieStatus = useCallback(async () => {
         const res = await fetchAPI<MovieStatus>(`/movie/${movieId}/account_states`)
 
         setMovieStatus(res)
-    }
+    },[movieId])
 
     const videoTrailers = useMemo(() => {
         const YTVideo = video.find(v => v.site === 'YouTube' && v.type === 'Trailer' && v.official === true);
@@ -124,13 +123,13 @@ const MovieDetailPage = () => {
 
     useEffect(() => {
         fetchMovie()
-    }, [movieId])
+    }, [fetchMovie])
 
     useEffect(() => {
         if (sessionId) {
             getMovieStatus()
         }
-    }, [sessionId])
+    }, [sessionId,getMovieStatus])
 
     if (!movie || isLoading) {
         return <LoadingSpin />
@@ -166,7 +165,7 @@ const MovieDetailPage = () => {
                                 ))
                             }
                         </div>
-                        {sessionId && <Button variant={movieStatus?.favorite ? "gradient-border" : "gradient"} className="w-40" onClick={() => addList()}>{movieStatus?.favorite ? "移出片單" : "加入片單"}</Button>}
+                        {sessionId && <Button variant={movieStatus?.favorite ? "gradient-border" : "gradient"} className="w-40 h-[42px]" onClick={() => addList()}>{movieStatus?.favorite ? "移出片單" : "加入片單"}</Button>}
                     </div>
                     <h2 className="text-3xl font-bold tabular-nums flex gap-4">{movie.title} <span className="text-gradient">{movie.vote_average.toFixed(1)}</span></h2>
                     <p className="flex gap-8">
