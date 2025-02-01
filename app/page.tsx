@@ -161,11 +161,11 @@ export default function Home() {
                   <span className="truncate line-clamp-2 whitespace-normal text-white max-sm:text-sm">{item.overview}</span>
                   <div className="flex gap-2">
                     <Link href={`/${item.type}/${item.id}`}>
-                      <Button variant="gradient-border" className="w-25 md:w-40 text-white">
+                      <Button variant="gradient-border" className="w-25 md:w-40 h-[42px] text-white">
                         更多資訊
                       </Button>
                     </Link>
-                    {sessionId && <Button variant={getMovieFavorite(item) ? "gradient-border" : "gradient"} className="w-25 md:w-40 text-white" onClick={() => addFavorite(item)}>{getMovieFavorite(item) ? "移出片單" : "加入片單"}</Button>}
+                    {sessionId && <Button variant={getMovieFavorite(item) ? "gradient-border" : "gradient"} className="w-25 md:w-40 text-white h-[42px]" onClick={() => addFavorite(item)}>{getMovieFavorite(item) ? "移出片單" : "加入片單"}</Button>}
                   </div>
                 </div>
                 <div className="absolute top-0 left-0 w-full h-full z-[1]"

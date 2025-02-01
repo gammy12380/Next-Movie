@@ -5,7 +5,7 @@ import LoadingSpin from "@/components/LoadingSpin";
 import { MovieCommon, MovieList } from "@/app/types/movie";
 import { themeData } from "@/hooks/theme/useThemeData";
 import MovieSection from "@/components/MovieSection";
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 
 export default function ThemeDetail() {
     const [isLoading, setIsLoading] = useState(true);
@@ -24,7 +24,8 @@ export default function ThemeDetail() {
     const discoverTVUrl = '/discover/tv?region=TW'
     const discoverMovieUrl = '/discover/movie?region=TW'
 
-    const fetchMovie = async (init: boolean = false) => {
+    const fetchMovie = useCallback(async () => {
+        const init = page === 1
         init ? setIsLoading(true) : setSectionLoading(true);
         try {
             const res = await fetchAPI<MovieCommon<MovieList>>(data?.type === 'movie' ? discoverMovieUrl : discoverTVUrl, {
@@ -36,25 +37,23 @@ export default function ThemeDetail() {
                 }
             })
             setTotal(res.total_results ?? 0)
-            if (page === 1) {
-                setList(res.results)
-            } else {
-                setList((prev) => ([...prev, ...res.results]))
-            }
+            setList((prev) => {
+                const uniqueMovies = [...prev, ...res.results].filter(
+                    (movie, index, self) => self.findIndex((m) => m.id === movie.id) === index
+                );
+                return uniqueMovies;
+            });
         } catch (error) {
             console.error("Failed to fetch data:", error);
         } finally {
             init ? setIsLoading(false) : setSectionLoading(false);
         }
-    }
+    },[data?.type, genreId, keyword, original, page])
 
-    useEffect(() => {
-        fetchMovie(true)
-    }, [])
 
     useEffect(() => {
         fetchMovie();
-    }, [page]);
+    }, [fetchMovie]);
 
 
     if (isLoading) {

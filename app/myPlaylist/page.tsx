@@ -4,7 +4,7 @@ import { useSearchContext } from "@/context/SearchContext";
 import { fetchAPI } from "@/hooks/apiClient";
 import MovieSection from "@/components/MovieSection";
 import { MovieCommon, MovieList } from "@/app/types/movie";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext";
 
@@ -24,32 +24,35 @@ export default function Search() {
     const [page, setPage] = useState(1)
     const [searchType, setSearchType] = useState<SearchType>('movie');
 
-    const favoriteUrl: Record<SearchType, string> = {
+    const favoriteUrl = useMemo(() => ({
         movie: `/account/${accountDetail?.id}/favorite/movies`,
         tv: `/account/${accountDetail?.id}/favorite/tv`,
-    }
-
+    }), [accountDetail?.id]);
+    
     const buttonType: ButtonType[] = [
         { title: '電影', value: 'movie' },
         { title: '影集', value: 'tv' },
     ]
 
-    const fetchMovie = async (init: boolean = false) => {
+    const fetchMovie = useCallback(async () => {
+        const init = page === 1 
         !init && setSectionLoading(true);
         try {
             const res = await fetchAPI<MovieCommon<MovieList>>(favoriteUrl[searchType], { queryParams: { query, page } })
             setTotal(res.total_results ?? 0)
-            if (page === 1) {
-                setList(res.results)
-            } else {
-                setList((prev) => ([...prev, ...res.results]))
-            }
+
+            setList((prev) => {
+                const uniqueMovies = [...prev, ...res.results].filter(
+                    (movie, index, self) => self.findIndex((m) => m.id === movie.id) === index
+                );
+                return uniqueMovies;
+            });
         } catch (error) {
             console.error("Failed to fetch data:", error);
         } finally {
             !init && setSectionLoading(false);
         }
-    }
+    },[favoriteUrl, page, query, searchType])
 
 
     const changeSearchType = (value: SearchType) => {
@@ -64,8 +67,8 @@ export default function Search() {
 
 
     useEffect(() => {
-        isLoggedIn && accountDetail?.id && fetchMovie(true)
-    }, [page, searchType, isLoggedIn, accountDetail])
+        isLoggedIn && accountDetail?.id && fetchMovie()
+    }, [fetchMovie, isLoggedIn, accountDetail])
 
     return (
         <div className="py-4 space-y-4">

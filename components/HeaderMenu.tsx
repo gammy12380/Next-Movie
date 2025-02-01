@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { usePathname } from 'next/navigation'
 import { menu } from "@/hooks/useMenuList";
@@ -32,6 +32,12 @@ export default function HeaderMenu({ onOpen }: HeaderMenu) {
     const [isScrolling, setIsScrolling] = useState(false);
     const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
     let scrollTimeout: NodeJS.Timeout;
+
+
+    const avatarImg = useMemo(()=>{
+        return  accountDetail?.avatar.tmdb.avatar_path  ? 
+        `https://image.tmdb.org/t/p/original${accountDetail?.avatar.tmdb.avatar_path}` : `https://www.gravatar.com/avatar/${accountDetail?.avatar.gravatar.hash}`
+    },[accountDetail])
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newQuery = e.target.value;
@@ -100,10 +106,7 @@ export default function HeaderMenu({ onOpen }: HeaderMenu) {
                             <li className="cursor-pointer size-10 flex items-center justify-center rounded-full bg-gray-700 overflow-hidden">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger className="flex items-center justify-center outline-none size-full">
-                                        {accountDetail?.avatar.tmdb.avatar_path ?
-                                            <LazyImage src={`https://image.tmdb.org/t/p/original${accountDetail?.avatar.tmdb.avatar_path}`} alt="logo" imgClass=" object-cover" />
-                                            : <LazyImage src={`https://www.gravatar.com/avatar/${accountDetail?.avatar.gravatar.hash}`} alt="logo" imgClass="object-cover" />
-                                        }
+                                        <LazyImage src={avatarImg} alt="logo" imgClass=" object-cover" />
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent className="bg-[#161616] text-white border-none">
                                         <DropdownMenuLabel>{accountDetail?.username}</DropdownMenuLabel>

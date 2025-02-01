@@ -55,12 +55,6 @@ const MovieSection = <T extends MovieItem>({ className, title, titleClassName, t
         <section className={cn('flex flex-col gap-4 mt-4', className, layout === 'grid' && 'gap-8')}>
             {title && <h4 className={cn('text-white', titleClassName)}>{title}</h4>}
 
-            {isLoading && !isShowMoreLoading &&
-                <div className="flex justify-center">
-                    <img src="/loading.gif" alt="loading" className="w-[10rem]" />
-                </div>
-            }
-
             {!isLoading && layout === "carousel" &&
                 <Carousel className="w-full">
                     <CarouselContent className={cn('flex gap-4')}>
@@ -97,7 +91,7 @@ const MovieSection = <T extends MovieItem>({ className, title, titleClassName, t
                     <CarouselNext className="hidden 2xl:flex text-white" />
                 </Carousel>}
 
-            {!isLoading && layout === 'grid' &&
+            {layout === 'grid' &&
                 <div className="flex flex-wrap gap-4">
                     {list?.map((item) => (
                         <div className="flex-shrink-0 sm:w-[160px] w-[calc(100%/3-2rem/3)]" key={item.id}>
