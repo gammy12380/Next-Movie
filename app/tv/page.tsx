@@ -36,7 +36,7 @@ export default function TV() {
     const [tvList, setTvList] = useState<MovieList[]>([])
     const [total, setTotal] = useState(0)
     const [page, setPage] = useState(1)
-    const [isSearchTriggered, setIsSearchTriggered] = useState(false);
+    // const [isSearchTriggered, setIsSearchTriggered] = useState(false);
     const [searchParams, setSearchParams] = useState<{
         genreType: number | undefined;
         year: number | undefined;
@@ -117,20 +117,18 @@ export default function TV() {
         setGenres([{ name: '全部', id: undefined }, ...genresRes.genres]);
     },[])
 
+    const searchMovie = async() =>{
+        setPage(1)
+        await fetchTVData();
+    }
 
     const searchMore = async () => {
-        setIsSearchTriggered(true);
         setPage((prev) => prev + 1)
-        fetchTVData()
     }
 
     useEffect(() => {
-        setIsSearchTriggered(false);
-    }, [searchParams]);
-
-    useEffect(() => {
         fetchTVData();
-    }, [searchParams.sort,page, isSearchTriggered]);
+    }, [searchParams.sort,page]);
 
     useEffect(()=>{
         fetchGenres();
@@ -190,7 +188,7 @@ export default function TV() {
 
                     </div>
                     <div className="flex-1 flex justify-end">
-                        <Button variant="gradient" className="w-40" onClick={() => fetchTVData()}>搜尋</Button>
+                        <Button variant="gradient" className="w-40" onClick={() => searchMovie()}>搜尋</Button>
                     </div>
                 </div>
             </div>
@@ -250,7 +248,7 @@ export default function TV() {
                             </div>
                         </DrawerHeader>
                         <DrawerFooter>
-                            <Button variant="gradient" className="w-full" onClick={() => fetchTVData()}>搜尋</Button>
+                            <Button variant="gradient" className="w-full" onClick={() => searchMovie()}>搜尋</Button>
                         </DrawerFooter>
                     </DrawerContent>
                 </Drawer>
