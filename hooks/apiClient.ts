@@ -1,5 +1,5 @@
-const BASE_URL = "https://api.themoviedb.org/3";
-const API_KEY = "f58699675d583f8efbefcbfc577991ee";
+const BASE_URL = process.env.NEXT_PUBLIC_TMDB_API_URL;
+const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 const DEFAULT_HEADERS = {
   accept: "application/json",
   "content-type": "application/json",
@@ -29,7 +29,10 @@ export const fetchAPI = async <Res = unknown, Req = unknown>(
 
   const url = isCustomUrl ? new URL(`${_url}`) : new URL(`${BASE_URL}${_url}`);
 
-  const sessionId = window.localStorage.getItem("session-id");
+  const sessionId =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("session-id")
+      : null;
 
   const buildQueryParams = (
     queryParams?: Record<string, string | number | undefined>
