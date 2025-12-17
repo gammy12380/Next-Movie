@@ -1,72 +1,67 @@
 "use client"
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 
 type LazyImageProps = {
-    src: string;
-    alt?: string;
-    useNextImage?: boolean;
-    imgClass?: string;
-    priority?: boolean;
+	src: string;
+	alt?: string;
+	useNextImage?: boolean;
+	imgClass?: string;
+	priority?: boolean;
 };
 
-const LazyImage = ({ src, alt = '', useNextImage = true, imgClass = '', priority = true }: LazyImageProps) => {
-    const imageElement = useRef<HTMLImageElement | null>(null);
-    const [imageLoaded, setImageLoaded] = useState(false);
-    const [imageWidth, setImageWidth] = useState<number | undefined>(undefined);
-    const [imageHeight, setImageHeight] = useState<number | undefined>(undefined);
+const LazyImage = ({ src, alt = '', useNextImage = true, imgClass = '', priority = false }: LazyImageProps) => {
+	const [imageLoaded, setImageLoaded] = useState(false);
+	const [error, setError] = useState(false);
 
+	const handleLoad = () => {
+		setImageLoaded(true);
+	};
 
-    useEffect(() => {
-        if (imageElement.current?.complete) {
-            setImageLoaded(true);
-        }
-    }, []);
+	const handleError = () => {
+		setError(true);
+		setImageLoaded(true); // Stop loading state on error
+	};
 
-    useEffect(() => {
-        const img = new window.Image();
-        img.src = src;
-        img.onload = () => {
-            setImageWidth(img.width);
-            setImageHeight(img.height);
-        };
-    }, [src]);
+	if (error) {
+		return (
+			<span className={`relative block w-full h-full bg-gray-800 flex items-center justify-center ${imgClass}`}>
+				<span className="text-gray-500 text-xs">Image Error</span>
+			</span>
+		);
+	}
 
-    const handleLoad = () => {
-        setImageLoaded(true);
-    };
+	return (
+		<span className={`relative block w-full h-full overflow-hidden ${imgClass}`}>
+			{!imageLoaded && (
+				<span className="absolute inset-0 z-10 bg-gray-700 animate-pulse block" />
+			)}
 
-    return (
-        <div className="relative w-full h-full">
-            {!imageLoaded && <div className="absolute top-0 left-0 z-1 w-full h-full aspect-[4/6] rounded-[8px] bg-gray-700 animate-pulse"></div>}
-
-            {!useNextImage ? (
-                <img
-                    ref={imageElement}
-                    src={src}
-                    alt={alt}
-                    className={`size-full object-cover ${imgClass}`}
-                    draggable="false"
-                    onLoad={handleLoad}
-                    style={{ display: imageLoaded ? 'block' : 'none' }}
-                />
-            ) : (imageWidth && imageHeight &&
-                <Image
-                    ref={imageElement}
-                    src={src}
-                    alt={alt}
-                    className={`h-full ${imgClass}`}
-                    draggable="false"
-                    onLoad={handleLoad}
-                    priority={priority}
-                    width={imageWidth}
-                    height={imageHeight}
-                    style={{ objectFit: 'cover' }}
-                />
-            )}
-        </div>
-    );
+			{!useNextImage ? (
+				<img
+					src={src}
+					alt={alt}
+					className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+					draggable="false"
+					onLoad={handleLoad}
+					onError={handleError}
+				/>
+			) : (
+				<Image
+					src={src}
+					alt={alt}
+					fill
+					sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+					className={`object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+					draggable="false"
+					onLoad={handleLoad}
+					onError={handleError}
+					priority={priority}
+				/>
+			)}
+		</span>
+	);
 };
 
 export default LazyImage;
