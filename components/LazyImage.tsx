@@ -58,6 +58,7 @@ const LazyImage = ({ src, alt = '', useNextImage = true, imgClass = '', priority
 					onLoad={handleLoad}
 					onError={handleError}
 					priority={priority}
+					unoptimized
 				/>
 			)}
 		</span>
